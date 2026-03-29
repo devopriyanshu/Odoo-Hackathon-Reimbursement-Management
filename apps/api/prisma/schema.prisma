@@ -1,0 +1,145 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Company {
+  id           String   @id @default(cuid())
+  name         String
+  currency     String
+  country      String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  users          User[]
+  expenses       Expense[]
+  approvalRules  ApprovalRule[]
+  approvalGroups ApprovalGroup[]
+  policyUrl      String?
+}
+
+model User {
+  id          String   @id @default(cuid())
+  companyId   String
+  email       String   @unique
+  password    String
+  name        String
+  role        String   @default("EMPLOYEE")
+  managerId   String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  company              Company               @relation(fields: [companyId], references: [id])
+  manager              User?                 @relation("ManagerEmployee", fields: [managerId], references: [id])
+  subordinates         User[]                @relation("ManagerEmployee")
+  expenses             Expense[]
+  approvalSteps        ApprovalStep[]
+  approvalGroupMembers ApprovalGroupMember[]
+}
+
+
+model Expense {
+  id            String          @id @default(cuid())
+  companyId     String
+  submittedById String
+  amount        Decimal
+  currency      String
+  amountInBase  Decimal
+  exchangeRate  Decimal
+  category      String
+  description   String
+  expenseDate   DateTime
+  receiptUrl    String?
+  ocrData       String?
+  status        String   @default("PENDING")
+  currentStep   Int             @default(0)
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  company       Company        @relation(fields: [companyId], references: [id])
+  submittedBy   User           @relation(fields: [submittedById], references: [id])
+  approvalSteps ApprovalStep[]
+  auditLog      AuditLog[]
+}
+
+
+
+model ApprovalRule {
+  id                     String            @id @default(cuid())
+  companyId              String
+  name                   String
+  description            String?
+  minAmount              Decimal?
+  maxAmount              Decimal?
+  categories             String // Stored as comma-separated or JSON string in SQLite if needed, but here simple string for now
+  isManagerFirstApprover Boolean           @default(false)
+  ruleType               String          @default("SEQUENTIAL")
+  percentageThreshold    Int?
+  specificApproverId     String?
+  isActive               Boolean           @default(true)
+  priority               Int               @default(0)
+  createdAt              DateTime          @default(now())
+  updatedAt              DateTime          @updatedAt
+
+  company        Company         @relation(fields: [companyId], references: [id])
+  approvalGroups ApprovalGroup[]
+}
+
+
+model ApprovalGroup {
+  id        String   @id @default(cuid())
+  ruleId    String
+  companyId String
+  name      String
+  sequence  Int
+  createdAt DateTime @default(now())
+
+  rule    ApprovalRule          @relation(fields: [ruleId], references: [id])
+  company Company               @relation(fields: [companyId], references: [id])
+  members ApprovalGroupMember[]
+  steps   ApprovalStep[]
+}
+
+model ApprovalGroupMember {
+  id      String @id @default(cuid())
+  groupId String
+  userId  String
+
+  group ApprovalGroup @relation(fields: [groupId], references: [id])
+  user  User          @relation(fields: [userId], references: [id])
+
+  @@unique([groupId, userId])
+}
+
+model ApprovalStep {
+  id         String             @id @default(cuid())
+  expenseId  String
+  groupId    String
+  approverId String
+  sequence   Int
+  status     String             @default("PENDING")
+  comment    String?
+  decidedAt  DateTime?
+  createdAt  DateTime           @default(now())
+
+  expense  Expense       @relation(fields: [expenseId], references: [id])
+  group    ApprovalGroup @relation(fields: [groupId], references: [id])
+  approver User          @relation(fields: [approverId], references: [id])
+}
+
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  expenseId String
+  actorId   String
+  action    String
+  metadata  String?
+  createdAt DateTime @default(now())
+
+  expense Expense @relation(fields: [expenseId], references: [id])
+}
