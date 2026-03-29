@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { asyncHandler } from '../utils/asyncHandler';
 import { expenseService } from '../services/expense.service';
+import { currencyService } from '../services/currency.service';
 
 export const expenseController = {
   create: asyncHandler(async (req: Request, res: Response) => {
@@ -38,5 +39,17 @@ export const expenseController = {
     res.setHeader('Content-Type', 'text/csv');
     res.setHeader('Content-Disposition', 'attachment; filename=expenses.csv');
     res.status(200).send(csv);
+  }),
+
+  previewConversion: asyncHandler(async (req: Request, res: Response) => {
+    const { sourceCurrency, targetCurrency } = req.body;
+    if (!sourceCurrency || !targetCurrency) {
+      return res.status(400).json({ success: false, message: 'sourceCurrency and targetCurrency are required' });
+    }
+    const rate = await currencyService.getConversionRate(
+      sourceCurrency as string,
+      targetCurrency as string
+    );
+    res.json({ success: true, data: { rate, sourceCurrency, targetCurrency } });
   }),
 };

@@ -53,7 +53,7 @@ async function main() {
       ruleType: 'SEQUENTIAL',
       isActive: true,
       priority: 1,
-      categories: '',
+      categories: [],
     },
   });
 
@@ -77,7 +77,7 @@ async function main() {
       specificApproverId: admin.id,
       isActive: true,
       priority: 10,
-      categories: 'TRAVEL,ACCOMMODATION',
+      categories: ['TRAVEL', 'ACCOMMODATION'],
     },
   });
 

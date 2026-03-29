@@ -337,8 +337,14 @@ export function ExpenseForm() {
                     <div className="text-right">
                       <p className="text-sm text-muted-foreground">Amount</p>
                       <p className="text-xl font-medium font-mono text-primary">
-                        {watch('currency')} {watch('amount')}
+                        {new Intl.NumberFormat('en-US', { style: 'currency', currency: watch('currency') || 'USD' }).format(Number(watch('amount')) || 0)}
                       </p>
+                      {watch('currency') !== user?.company?.currency && exchangeRatePreview && (
+                        <p className="text-sm text-muted-foreground mt-0.5">
+                          ≈ {new Intl.NumberFormat('en-US', { style: 'currency', currency: user?.company?.currency || 'USD' }).format((Number(watch('amount')) || 0) * exchangeRatePreview)}
+                          <span className="text-xs ml-1">({user?.company?.currency})</span>
+                        </p>
+                      )}
                     </div>
                   </div>
                   

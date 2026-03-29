@@ -1,13 +1,13 @@
 version: '3.8'
 services:
   postgres:
-    image: postgres:15-alpine
+    image: postgres:14-alpine
     environment:
       POSTGRES_USER: reimburse
       POSTGRES_PASSWORD: reimburse_secure_pass
       POSTGRES_DB: reimburse_db
     ports:
-      - "5432:5432"
+      - "5434:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     restart: unless-stopped

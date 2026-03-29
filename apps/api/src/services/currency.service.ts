@@ -16,7 +16,7 @@ export const currencyService = {
 
     try {
       const res = await fetch('https://restcountries.com/v3.1/all?fields=name,currencies');
-      const data: any[] = await res.json();
+      const data = await res.json() as any[];
 
       const result: CountryCurrency[] = [];
       for (const country of data) {
@@ -39,10 +39,15 @@ export const currencyService = {
     }
   },
 
-  async getExchangeRate(baseCurrency: string, targetCurrency: string): Promise<number> {
-    if (baseCurrency === targetCurrency) return 1;
+  /**
+   * Returns how many units of `toCurrency` you get per 1 unit of `fromCurrency`.
+   * e.g. getConversionRate('USD', 'INR') → ~83
+   * Fetches: https://api.exchangerate-api.com/v4/latest/USD → rates.INR
+   */
+  async getConversionRate(fromCurrency: string, toCurrency: string): Promise<number> {
+    if (fromCurrency === toCurrency) return 1;
 
-    const cacheKey = `exchange:${baseCurrency}`;
+    const cacheKey = `exchange:${fromCurrency}`;
     let rates: Record<string, number> = {};
 
     const cached = await redis.get(cacheKey);
@@ -50,8 +55,8 @@ export const currencyService = {
       rates = JSON.parse(cached);
     } else {
       try {
-        const res = await fetch(`https://api.exchangerate-api.com/v4/latest/${baseCurrency}`);
-        const data = await res.json();
+        const res = await fetch(`https://api.exchangerate-api.com/v4/latest/${fromCurrency}`);
+        const data = await res.json() as { rates?: Record<string, number> };
         rates = data.rates || {};
         await redis.set(cacheKey, JSON.stringify(rates), 'EX', 60 * 60);
       } catch (err) {
@@ -60,12 +65,15 @@ export const currencyService = {
       }
     }
 
-    return rates[targetCurrency] || 1;
+    return rates[toCurrency] || 1;
   },
 
+  /**
+   * Converts `amount` in `fromCurrency` to `baseCurrency`.
+   * exchangeRate stored on the expense = how many baseCurrency per 1 fromCurrency.
+   */
   async convertToBase(amount: number, fromCurrency: string, baseCurrency: string) {
-    const rate = await currencyService.getExchangeRate(baseCurrency, fromCurrency);
-    const exchangeRate = rate === 0 ? 1 : 1 / rate;
+    const exchangeRate = await currencyService.getConversionRate(fromCurrency, baseCurrency);
     const amountInBase = amount * exchangeRate;
     return { amountInBase, exchangeRate };
   },

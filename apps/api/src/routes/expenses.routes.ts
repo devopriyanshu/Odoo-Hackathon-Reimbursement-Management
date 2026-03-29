@@ -10,6 +10,7 @@ router.use(authenticate);
 
 router.get('/stats', expenseController.stats);
 router.get('/export', expenseController.export);
+router.post('/preview-conversion', expenseController.previewConversion);
 router.get('/', validate({ query: expenseQuerySchema }), expenseController.list);
 router.post('/', validate({ body: createExpenseSchema }), expenseController.create);
 router.get('/:id', expenseController.getById);

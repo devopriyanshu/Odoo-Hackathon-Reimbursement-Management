@@ -3,7 +3,7 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
@@ -76,7 +76,7 @@ model ApprovalRule {
   description            String?
   minAmount              Decimal?
   maxAmount              Decimal?
-  categories             String // Stored as comma-separated or JSON string in SQLite if needed, but here simple string for now
+  categories             String[]
   isManagerFirstApprover Boolean           @default(false)
   ruleType               String          @default("SEQUENTIAL")
   percentageThreshold    Int?

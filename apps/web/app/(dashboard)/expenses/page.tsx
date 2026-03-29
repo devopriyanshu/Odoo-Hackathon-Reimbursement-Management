@@ -57,18 +57,22 @@ export default function ExpensesPage() {
       key: 'amount',
       title: 'Amount',
       sortable: true,
-      render: (exp: Expense) => (
-        <div className="flex flex-col">
-          <span className="amount-display font-medium text-foreground">
-            {new Intl.NumberFormat('en-US', { style: 'currency', currency: exp.currency }).format(exp.amount)}
-          </span>
-          {exp.currency !== exp.company?.currency && (
-            <span className="amount-display text-xs text-muted-foreground">
-              {new Intl.NumberFormat('en-US', { style: 'currency', currency: exp.company?.currency || 'USD' }).format(exp.amountInBase)}
+      render: (exp: Expense) => {
+        const companyCurrency = exp.company?.currency || user?.company?.currency;
+        const isDifferentCurrency = companyCurrency && exp.currency !== companyCurrency;
+        return (
+          <div className="flex flex-col">
+            <span className="amount-display font-medium text-foreground">
+              {new Intl.NumberFormat('en-US', { style: 'currency', currency: exp.currency }).format(exp.amount)}
             </span>
-          )}
-        </div>
-      )
+            {isDifferentCurrency && (
+              <span className="amount-display text-xs text-muted-foreground">
+                {new Intl.NumberFormat('en-US', { style: 'currency', currency: companyCurrency! }).format(exp.amountInBase)}
+              </span>
+            )}
+          </div>
+        );
+      }
     },
     {
       key: 'status',

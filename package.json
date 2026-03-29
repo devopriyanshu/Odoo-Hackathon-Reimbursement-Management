@@ -7,15 +7,15 @@
     "packages/*"
   ],
   "scripts": {
-    "dev": "concurrently \"npm run dev:api\" \"npm run dev:web\"",
-    "dev:api": "cd apps/api && npm run dev",
-    "dev:web": "cd apps/web && npm run dev",
+    "dev": "concurrently \"npm run dev -w api\" \"npm run dev -w web\"",
+    "dev:api": "npm run dev -w api",
+    "dev:web": "npm run dev -w web",
     "db:up": "docker-compose up -d",
     "db:down": "docker-compose down",
     "db:migrate": "cd apps/api && npx prisma migrate dev",
     "db:seed": "cd apps/api && npx prisma db seed",
     "db:studio": "cd apps/api && npx prisma studio",
-    "setup": "npm run db:up && npx wait-on tcp:5432 && npm run db:migrate && npm run db:seed"
+    "setup": "npm run db:up && npx wait-on tcp:5434 && npm run db:migrate && npm run db:seed"
   },
   "devDependencies": {
     "concurrently": "^8.2.2"

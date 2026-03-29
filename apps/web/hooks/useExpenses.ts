@@ -21,7 +21,7 @@ export function useExpenses({ page = 1, limit = 10, status = '', search = '' }: 
       if (search) params.append('search', search);
 
       const res = await api.get(`/expenses?${params.toString()}`);
-      return res.data;
+      return res.data.data;
     },
   });
 }

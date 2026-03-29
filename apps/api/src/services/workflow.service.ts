@@ -22,12 +22,12 @@ export const workflowService = {
     });
 
     const matchingRule = rules.find((rule: any) => {
-      // String-based comparisons for SQLite compatibility
       const amount = Number(expense.amountInBase);
       if (rule.minAmount !== null && amount < Number(rule.minAmount)) return false;
       if (rule.maxAmount !== null && amount > Number(rule.maxAmount)) return false;
       
-      const categories = rule.categories ? (rule.categories as string).split(',') : [];
+      // categories is ExpenseCategory[] on PostgreSQL
+      const categories: string[] = Array.isArray(rule.categories) ? rule.categories : [];
       if (categories.length > 0 && !categories.includes(expense.category)) return false;
       
       return true;
@@ -64,20 +64,26 @@ export const workflowService = {
 
     // sequence 0 is reserved for manager if enabled
     if (currentStepSequence === 0 && rule.isManagerFirstApprover && managerId) {
-      await prisma.approvalStep.create({
-        data: {
-          expenseId,
-          groupId: rule.approvalGroups[0]?.id || 'manager-group', // dummy group id for manager step if needed
-          approverId: managerId,
-          sequence: 0,
-          status: 'PENDING',
-        },
-      });
-      await prisma.expense.update({
-        where: { id: expenseId },
-        data: { status: 'IN_REVIEW', currentStep: 0 },
-      });
-      return;
+      // Use the first real group's id — manager is a pre-step before group 1
+      const firstGroupId = rule.approvalGroups[0]?.id;
+      if (!firstGroupId) {
+        logger.warn('isManagerFirstApprover is true but no groups are configured');
+      } else {
+        await prisma.approvalStep.create({
+          data: {
+            expenseId,
+            groupId: firstGroupId,
+            approverId: managerId,
+            sequence: 0,
+            status: 'PENDING',
+          },
+        });
+        await prisma.expense.update({
+          where: { id: expenseId },
+          data: { status: 'IN_REVIEW', currentStep: 0 },
+        });
+        return;
+      }
     }
 
     // Otherwise find the group for the current sequence

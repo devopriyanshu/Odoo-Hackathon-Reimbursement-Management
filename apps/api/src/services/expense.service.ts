@@ -20,15 +20,15 @@ export const expenseService = {
       data: {
         companyId,
         submittedById: userId,
-        amount: input.amount,
-        currency: input.currency,
+        amount: input.amount as number,
+        currency: input.currency as string,
         amountInBase,
         exchangeRate,
-        category: input.category,
+        category: input.category as string,
         description: input.description as string,
         expenseDate: new Date(input.expenseDate as string),
-        receiptUrl: input.receiptUrl,
-        ocrData: input.ocrData,
+        receiptUrl: (input.receiptUrl as string | null | undefined) ?? null,
+        ocrData: input.ocrData ? JSON.stringify(input.ocrData) : null,
         status: 'PENDING',
       },
       include: { submittedBy: { select: { id: true, name: true, email: true, role: true } } },
@@ -39,7 +39,7 @@ export const expenseService = {
         expenseId: expense.id,
         actorId: userId,
         action: 'SUBMITTED',
-        metadata: { amount: input.amount, currency: input.currency },
+        metadata: JSON.stringify({ amount: input.amount, currency: input.currency }),
       },
     });
 
@@ -86,12 +86,13 @@ export const expenseService = {
         orderBy: { createdAt: 'desc' },
         include: {
           submittedBy: { select: { id: true, name: true, email: true } },
+          company: { select: { id: true, name: true, currency: true } },
         },
       }),
       prisma.expense.count({ where }),
     ]);
 
-    return { expenses, total, page, limit, totalPages: Math.ceil(total / limit) };
+    return { data: expenses, total, page: Number(page), limit: Number(limit), totalPages: Math.ceil(total / Number(limit)) };
   },
 
   async findById(id: string, companyId: string) {
@@ -112,12 +113,12 @@ export const expenseService = {
     return prisma.expense.update({
       where: { id },
       data: {
-        ...(input.amount !== undefined && { amount: input.amount }),
-        ...(input.currency !== undefined && { currency: input.currency }),
-        ...(input.category !== undefined && { category: input.category }),
-        ...(input.description !== undefined && { description: input.description }),
+        ...(input.amount !== undefined && { amount: input.amount as number }),
+        ...(input.currency !== undefined && { currency: input.currency as string }),
+        ...(input.category !== undefined && { category: input.category as string }),
+        ...(input.description !== undefined && { description: input.description as string }),
         ...(input.expenseDate !== undefined && { expenseDate: new Date(input.expenseDate as string) }),
-        ...(input.receiptUrl !== undefined && { receiptUrl: input.receiptUrl }),
+        ...(input.receiptUrl !== undefined && { receiptUrl: input.receiptUrl as string | null }),
       },
       include: expenseService.fullInclude(),
     });
@@ -151,18 +152,28 @@ export const expenseService = {
       prisma.expense.aggregate({ where: { ...where, status: 'APPROVED' }, _sum: { amountInBase: true } }),
     ]);
 
-    // 30-day trend
-    const trend = [];
+    // 30-day trend — single groupBy query for performance
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 29);
+    thirtyDaysAgo.setHours(0, 0, 0, 0);
+
+    const trendRaw = await prisma.expense.findMany({
+      where: { ...where, createdAt: { gte: thirtyDaysAgo } },
+      select: { createdAt: true },
+    });
+
+    // Bucket by day
+    const buckets: Record<string, number> = {};
     for (let i = 29; i >= 0; i--) {
-      const date = new Date();
-      date.setDate(date.getDate() - i);
-      const dayStart = new Date(date.getFullYear(), date.getMonth(), date.getDate());
-      const dayEnd = new Date(dayStart.getTime() + 24 * 60 * 60 * 1000);
-      const count = await prisma.expense.count({
-        where: { ...where, createdAt: { gte: dayStart, lt: dayEnd } },
-      });
-      trend.push({ date: dayStart.toISOString().split('T')[0], count });
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      buckets[d.toISOString().split('T')[0]] = 0;
     }
+    for (const e of trendRaw) {
+      const day = e.createdAt.toISOString().split('T')[0];
+      if (day in buckets) buckets[day]++;
+    }
+    const trend = Object.entries(buckets).map(([date, count]) => ({ date, count }));
 
     return {
       totalThisMonth,

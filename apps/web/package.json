@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "dev": "next dev -p 3000",
+    "dev": "npm_config_workspaces=false NEXT_TELEMETRY_DISABLED=1 next dev -p 3005",
     "build": "next build",
     "start": "next start",
     "lint": "next lint"

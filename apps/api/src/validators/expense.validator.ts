@@ -1,10 +1,21 @@
 import { z } from 'zod';
-import { ExpenseCategory } from '@prisma/client';
+
+const EXPENSE_CATEGORIES = [
+  'TRAVEL',
+  'MEALS',
+  'ACCOMMODATION',
+  'EQUIPMENT',
+  'SOFTWARE',
+  'TRAINING',
+  'MARKETING',
+  'UTILITIES',
+  'OTHER',
+] as const;
 
 export const createExpenseSchema = z.object({
   amount: z.number().positive('Amount must be positive').multipleOf(0.01, 'Max 2 decimal places'),
   currency: z.string().length(3, 'Currency must be a valid ISO 4217 code').toUpperCase(),
-  category: z.nativeEnum(ExpenseCategory),
+  category: z.enum(EXPENSE_CATEGORIES, { errorMap: () => ({ message: 'Invalid expense category' }) }),
   description: z
     .string()
     .min(10, 'Description must be at least 10 characters')

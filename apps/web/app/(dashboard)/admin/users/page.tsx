@@ -36,7 +36,7 @@ export default function AdminUsersPage() {
       const res = await api.get('/users', {
         params: { page, limit: 10, search }
       });
-      return res.data;
+      return res.data.data;
     }
   });
 

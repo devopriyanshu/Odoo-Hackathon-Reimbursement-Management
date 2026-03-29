@@ -2,7 +2,6 @@ import { Request, Response } from 'express';
 import { asyncHandler } from '../utils/asyncHandler';
 import { prisma } from '../config/database';
 import { ApiError } from '../utils/ApiError';
-import { Role } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 
 export const usersController = {
@@ -24,7 +23,7 @@ export const usersController = {
       }),
       prisma.user.count({ where }),
     ]);
-    res.json({ success: true, data: { users, total, page: parseInt(page), totalPages: Math.ceil(total / parseInt(limit)) } });
+    res.json({ success: true, data: { data: users, total, page: parseInt(page), limit: parseInt(limit), totalPages: Math.ceil(total / parseInt(limit)) } });
   }),
 
   create: asyncHandler(async (req: Request, res: Response) => {
@@ -67,7 +66,7 @@ export const usersController = {
 
   getManagers: asyncHandler(async (req: Request, res: Response) => {
     const managers = await prisma.user.findMany({
-      where: { companyId: req.user.companyId, role: { in: ['MANAGER', 'ADMIN'] as Role[] }, isActive: true },
+      where: { companyId: req.user.companyId, role: { in: ['MANAGER', 'ADMIN'] }, isActive: true },
       select: { id: true, name: true, email: true, role: true },
     });
     res.json({ success: true, data: managers });

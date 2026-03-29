@@ -47,11 +47,22 @@ export default function DashboardPage() {
     {
       key: 'amount',
       title: 'Amount',
-      render: (exp: Expense) => (
-        <span className="amount-display font-medium">
-          {new Intl.NumberFormat('en-US', { style: 'currency', currency: exp.currency }).format(exp.amount)}
-        </span>
-      )
+      render: (exp: Expense) => {
+        const companyCurrency = exp.company?.currency || currencyCode;
+        const isDifferentCurrency = exp.currency !== companyCurrency;
+        return (
+          <div className="flex flex-col">
+            <span className="amount-display font-medium">
+              {new Intl.NumberFormat('en-US', { style: 'currency', currency: exp.currency }).format(exp.amount)}
+            </span>
+            {isDifferentCurrency && (
+              <span className="amount-display text-xs text-muted-foreground">
+                {new Intl.NumberFormat('en-US', { style: 'currency', currency: companyCurrency }).format(exp.amountInBase)}
+              </span>
+            )}
+          </div>
+        );
+      }
     },
     {
       key: 'status',
