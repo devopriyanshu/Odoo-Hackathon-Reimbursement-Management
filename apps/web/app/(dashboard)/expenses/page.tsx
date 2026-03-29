@@ -4,11 +4,13 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { format } from 'date-fns';
-import { PlusCircle, Filter } from 'lucide-react';
+import { PlusCircle, Filter, Receipt, FileSearch } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 import { PageContainer } from '@/components/layout/PageContainer';
 import { DataTable } from '@/components/shared/DataTable';
 import { StatusBadge } from '@/components/shared/StatusBadge';
+import { CategoryIconBadge } from '@/components/shared/CategoryIconBadge';
 import { useExpenses } from '@/hooks/useExpenses';
 import { Expense, ExpenseStatus } from '@/types';
 import { useAuthStore } from '@/store/authStore';
@@ -42,8 +44,8 @@ export default function ExpensesPage() {
       render: (exp: Expense) => (
         <div>
           <p className="font-medium text-foreground truncate max-w-[250px] sm:max-w-[400px]">{exp.description}</p>
-          <div className="flex items-center gap-2 mt-1">
-            <span className="text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-full">{exp.category}</span>
+          <div className="flex items-center gap-2 mt-2">
+            <CategoryIconBadge category={exp.category} />
             {user?.role !== 'EMPLOYEE' && (
               <span className="text-xs text-muted-foreground truncate max-w-[150px]">
                 by {exp.submittedBy.name}
@@ -60,9 +62,15 @@ export default function ExpensesPage() {
       render: (exp: Expense) => {
         const companyCurrency = exp.company?.currency || user?.company?.currency;
         const isDifferentCurrency = companyCurrency && exp.currency !== companyCurrency;
+        
+        let amountColor = 'text-foreground';
+        if (exp.status === 'APPROVED') amountColor = 'text-emerald-500';
+        else if (exp.status === 'REJECTED') amountColor = 'text-red-500';
+        else if (exp.status === 'PENDING' || exp.status === 'IN_REVIEW') amountColor = 'text-amber-500';
+
         return (
           <div className="flex flex-col">
-            <span className="amount-display font-medium text-foreground">
+            <span className={`amount-display font-medium ${amountColor}`}>
               {new Intl.NumberFormat('en-US', { style: 'currency', currency: exp.currency }).format(exp.amount)}
             </span>
             {isDifferentCurrency && (
@@ -140,23 +148,32 @@ export default function ExpensesPage() {
       <div className="mb-6 flex flex-col sm:flex-row gap-4 items-center">
         {/* Status Filter */}
         <div className="flex items-center gap-2 overflow-x-auto pb-2 sm:pb-0 w-full sm:w-auto hide-scrollbar">
-          <Filter className="w-4 h-4 text-muted-foreground shrink-0 hidden sm:block" />
-          {statuses.map((s) => (
-            <button
-              key={s.value}
-              onClick={() => {
-                setStatusFilter(s.value);
-                setPage(1);
-              }}
-              className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors border ${
-                statusFilter === s.value
-                  ? 'bg-primary text-primary-foreground border-primary shadow-sm'
-                  : 'bg-card text-muted-foreground border-border hover:bg-muted hover:text-foreground'
-              }`}
-            >
-              {s.label}
-            </button>
-          ))}
+          <Filter className="w-4 h-4 text-muted-foreground/50 shrink-0 hidden sm:block mr-2" />
+          {statuses.map((s) => {
+            const isActive = statusFilter === s.value;
+            return (
+              <button
+                key={s.value}
+                onClick={() => {
+                  setStatusFilter(s.value);
+                  setPage(1);
+                }}
+                className={`relative px-4 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-colors outline-none ${
+                  isActive ? 'text-primary-foreground' : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+                }`}
+              >
+                {isActive && (
+                  <motion.div
+                    layoutId="expenseTabFilter"
+                    className="absolute inset-0 bg-primary rounded-full shadow-sm shadow-primary/20"
+                    initial={false}
+                    transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+                  />
+                )}
+                <span className="relative z-10">{s.label}</span>
+              </button>
+            );
+          })}
         </div>
       </div>
 
@@ -176,6 +193,37 @@ export default function ExpensesPage() {
           }}
           onRowClick={handleRowClick}
           isLoading={isLoading}
+          emptyState={
+            <div className="flex flex-col items-center justify-center py-16 px-4 text-center">
+              <motion.div 
+                initial={{ scale: 0.8, opacity: 0 }} 
+                animate={{ scale: 1, opacity: 1 }} 
+                transition={{ type: 'spring', bounce: 0.5 }}
+                className="w-24 h-24 mb-6 relative"
+              >
+                <div className="absolute inset-0 bg-primary/10 blur-xl rounded-full" />
+                <div className="relative z-10 w-full h-full bg-card border border-border/50 rounded-2xl shadow-sm flex items-center justify-center rotate-3 hover:rotate-6 transition-transform">
+                  {search || statusFilter ? <FileSearch className="w-10 h-10 text-muted-foreground/50" /> : <Receipt className="w-10 h-10 text-primary/50" />}
+                </div>
+              </motion.div>
+              <h3 className="text-xl font-display font-semibold text-foreground mb-2">
+                {search || statusFilter ? 'No matching expenses' : 'No expenses yet'}
+              </h3>
+              <p className="text-muted-foreground max-w-sm mx-auto mb-6">
+                {search || statusFilter 
+                  ? 'Try adjusting your filters or search query to find what you are looking for.' 
+                  : 'Get started by creating your first reimbursement request.'}
+              </p>
+              {!search && !statusFilter && (
+                <Link
+                  href="/expenses/new"
+                  className="px-5 py-2.5 bg-primary text-primary-foreground rounded-full text-sm font-medium hover:bg-primary/90 transition-all shadow-md shadow-primary/20 flex items-center gap-2"
+                >
+                  <PlusCircle className="w-4 h-4" /> Create Expense
+                </Link>
+              )}
+            </div>
+          }
         />
       </div>
     </PageContainer>

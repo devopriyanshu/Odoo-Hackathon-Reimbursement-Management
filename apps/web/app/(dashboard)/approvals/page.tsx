@@ -11,6 +11,7 @@ import { PageContainer } from '@/components/layout/PageContainer';
 import { useApprovals, useApprovalsHistory, ApprovalStepWithExpense } from '@/hooks/useApprovals';
 import { StatusBadge } from '@/components/shared/StatusBadge';
 import { Skeleton } from '@/components/shared/LoadingSkeleton';
+import { AvatarInitials } from '@/components/shared/AvatarInitials';
 import api from '@/lib/api';
 import { queryClient } from '@/lib/queryClient';
 
@@ -77,16 +78,40 @@ export default function ApprovalsPage() {
         <div className="p-5 sm:p-6 grid grid-cols-1 md:grid-cols-4 gap-6 items-start">
           {/* Details Column */}
           <div className="md:col-span-2 space-y-4">
-            <div className="flex items-start justify-between">
-              <div>
-                <div className="flex items-center gap-3 mb-1">
-                  <h3 className="text-base font-semibold text-foreground">{expense.description}</h3>
+            <div className="flex items-start gap-4">
+              <AvatarInitials name={expense.submittedBy.name} role="EMPLOYEE" size="md" />
+              <div className="flex-1 min-w-0">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 mb-1">
+                  <h3 className="text-lg font-display font-semibold text-foreground truncate">{expense.description}</h3>
                   {activeTab === 'HISTORY' && <StatusBadge status={expense.status as any} />}
                 </div>
                 <p className="text-sm text-muted-foreground">
                   Submitted by <span className="font-medium text-foreground">{expense.submittedBy.name}</span> on{' '}
                   {format(new Date(expense.createdAt), 'MMM dd, yyyy')}
                 </p>
+                
+                {/* Workflow Progress Bar */}
+                <div className="flex items-center gap-1.5 mt-3 max-w-[200px]">
+                  {[1, 2, 3].map((s) => {
+                    const isCompleted = s < expense.currentStep || expense.status === 'APPROVED';
+                    const isCurrent = s === expense.currentStep && expense.status === 'PENDING';
+                    const isRejected = s === expense.currentStep && expense.status === 'REJECTED';
+                    return (
+                      <div
+                        key={s}
+                        className={`h-1.5 flex-1 rounded-full ${
+                          isCompleted ? 'bg-primary' :
+                          isCurrent ? 'bg-amber-500 pulse-amber' :
+                          isRejected ? 'bg-destructive' : 'bg-muted'
+                        }`}
+                        title={`Step ${s}`}
+                      />
+                    );
+                  })}
+                  <span className="text-[10px] font-medium text-muted-foreground ml-2 whitespace-nowrap">
+                    Step {expense.currentStep}
+                  </span>
+                </div>
               </div>
             </div>
 
@@ -249,15 +274,34 @@ export default function ApprovalsPage() {
           <Skeleton className="h-48 w-full rounded-2xl" />
         </div>
       ) : !steps || steps.length === 0 ? (
-        <div className="text-center py-20 bg-card border border-border rounded-2xl shadow-sm">
-          <CheckCircle2 className="w-12 h-12 text-muted-foreground mx-auto mb-4 opacity-50" />
-          <h3 className="text-lg font-display font-semibold text-foreground mb-1">
+        <div className="text-center py-20 bg-card border border-border rounded-xl shadow-sm relative overflow-hidden">
+          {/* Decorative background blobs */}
+          <div className="absolute -top-10 -left-10 w-40 h-40 bg-primary/5 rounded-full blur-2xl" />
+          <div className="absolute -bottom-10 -right-10 w-40 h-40 bg-emerald-500/5 rounded-full blur-2xl" />
+          
+          <motion.div
+            initial={{ scale: 0, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1, rotate: [0, -10, 10, -5, 5, 0] }}
+            transition={{ type: 'spring', duration: 1.5, bounce: 0.5 }}
+          >
+            <div className="w-20 h-20 mx-auto bg-emerald-500/10 text-emerald-500 rounded-full flex items-center justify-center mb-5 shadow-sm shadow-emerald-500/20 relative">
+              {activeTab === 'PENDING' && (
+                <>
+                  <motion.div initial={{ y: 0, opacity: 0 }} animate={{ y: -40, opacity: [0, 1, 0] }} transition={{ delay: 0.5, duration: 1 }} className="absolute text-2xl">✨</motion.div>
+                  <motion.div initial={{ x: 0, y: 0, opacity: 0 }} animate={{ x: -30, y: -20, opacity: [0, 1, 0] }} transition={{ delay: 0.7, duration: 1 }} className="absolute text-lg">🎉</motion.div>
+                  <motion.div initial={{ x: 0, y: 0, opacity: 0 }} animate={{ x: 30, y: -20, opacity: [0, 1, 0] }} transition={{ delay: 0.9, duration: 1 }} className="absolute text-xl">🌟</motion.div>
+                </>
+              )}
+              <CheckCircle2 className="w-10 h-10" />
+            </div>
+          </motion.div>
+          <h3 className="text-xl font-display font-semibold text-foreground mb-2">
             {activeTab === 'PENDING' ? "You're all caught up!" : 'No history yet'}
           </h3>
-          <p className="text-muted-foreground text-sm">
+          <p className="text-muted-foreground text-sm max-w-sm mx-auto relative z-10">
             {activeTab === 'PENDING'
-              ? 'No expenses are currently waiting for your review.'
-              : 'Your approval history will appear here.'}
+              ? 'Great job! You have cleared all pending approvals. Take a moment to relax.'
+              : 'Your approval history will appear here once you take action on expenses.'}
           </p>
         </div>
       ) : (

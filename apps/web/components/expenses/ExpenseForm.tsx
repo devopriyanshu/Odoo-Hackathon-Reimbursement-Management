@@ -7,7 +7,10 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
-import { Check, ChevronRight, FileText, Loader2, ArrowRight, CheckCircle2 } from 'lucide-react';
+import { 
+  Check, ChevronRight, FileText, Loader2, ArrowRight, CheckCircle2,
+  Plane, Utensils, Building, Monitor, Laptop, GraduationCap, Megaphone, Zap, Box
+} from 'lucide-react';
 import { format } from 'date-fns';
 
 import api from '@/lib/api';
@@ -39,6 +42,18 @@ const STEPS = [
   { id: 'receipt', title: 'Receipt' },
   { id: 'details', title: 'Details' },
   { id: 'review', title: 'Review' }
+];
+
+const CATEGORIES = [
+  { value: 'TRAVEL', label: 'Travel', icon: Plane },
+  { value: 'MEALS', label: 'Meals', icon: Utensils },
+  { value: 'ACCOMMODATION', label: 'Housing', icon: Building },
+  { value: 'EQUIPMENT', label: 'Equipment', icon: Monitor },
+  { value: 'SOFTWARE', label: 'Software', icon: Laptop },
+  { value: 'TRAINING', label: 'Training', icon: GraduationCap },
+  { value: 'MARKETING', label: 'Marketing', icon: Megaphone },
+  { value: 'UTILITIES', label: 'Utilities', icon: Zap },
+  { value: 'OTHER', label: 'Other', icon: Box },
 ];
 
 export function ExpenseForm() {
@@ -137,7 +152,11 @@ export function ExpenseForm() {
       await queryClient.invalidateQueries({ queryKey: ['expenses'] });
       await queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
       
-      toast.success('Expense submitted successfully');
+      toast('Expense Submitted Successfully', {
+        icon: '🎉',
+        description: 'Your expense has been logged and is awaiting approval.',
+        className: 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20 shadow-lg shadow-emerald-500/10'
+      });
       router.push('/expenses');
     } catch (err: any) {
       toast.error(err.response?.data?.message || 'Failed to submit expense');
@@ -251,20 +270,30 @@ export function ExpenseForm() {
                           initial={{ opacity: 0, height: 0 }}
                           animate={{ opacity: 1, height: 'auto' }}
                           exit={{ opacity: 0, height: 0 }}
-                          className="p-3 bg-primary/5 border border-primary/20 rounded-lg"
+                          className="relative overflow-hidden rounded-xl border border-primary/30 p-4 shadow-[0_0_15px_rgba(var(--primary),0.1)]"
                         >
-                          <div className="flex items-center gap-2 text-sm text-foreground font-medium">
-                            <span className="text-muted-foreground">Approx. Converted Eqv.</span>
-                            {previewLoading ? (
-                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                            ) : exchangeRatePreview ? (
-                              <span className="amount-display text-primary">
-                                {new Intl.NumberFormat('en-US', { style: 'currency', currency: user?.company?.currency || 'USD' })
-                                  .format(parseFloat(amountData.toString()) * exchangeRatePreview)}
-                              </span>
-                            ) : '-'}
+                          <div className="absolute inset-0 bg-gradient-to-r from-primary/10 via-primary/5 to-transparent z-0" />
+                          <motion.div
+                            animate={{ x: ['-200%', '200%'] }}
+                            transition={{ repeat: Infinity, duration: 2.5, ease: "linear" }}
+                            className="absolute inset-0 bg-gradient-to-r from-transparent via-primary/20 to-transparent w-[200%] h-full z-0"
+                            style={{ skewX: -20 }}
+                          />
+                          <div className="relative z-10">
+                            <div className="flex items-center gap-2 text-sm text-foreground font-medium mb-1">
+                              <span className="text-muted-foreground font-display">Approx. Converted Eqv.</span>
+                              <div className="flex-1 border-b border-dashed border-border/50" />
+                              {previewLoading ? (
+                                <Loader2 className="w-3.5 h-3.5 animate-spin text-primary" />
+                              ) : exchangeRatePreview ? (
+                                <span className="amount-display text-primary text-base">
+                                  {new Intl.NumberFormat('en-US', { style: 'currency', currency: user?.company?.currency || 'USD' })
+                                    .format(parseFloat(amountData.toString()) * exchangeRatePreview)}
+                                </span>
+                              ) : '-'}
+                            </div>
+                            <p className="text-xs text-muted-foreground flex justify-end">Live rate applied upon final submission</p>
                           </div>
-                          <p className="text-xs text-muted-foreground mt-1">Live rates applied on submission.</p>
                         </motion.div>
                       )}
                     </AnimatePresence>
@@ -272,21 +301,37 @@ export function ExpenseForm() {
 
                   <div className="space-y-4">
                     <div>
-                      <label className="text-sm font-medium mb-1.5 block">Category</label>
-                      <select 
-                        {...register('category')}
-                        className="w-full px-3 py-2.5 rounded-lg bg-muted/50 border border-border text-sm text-foreground focus:ring-2 focus:ring-primary/50 transition-all outline-none appearance-none cursor-pointer"
-                      >
-                        <option value="TRAVEL">Travel</option>
-                        <option value="MEALS">Meals & Entertainment</option>
-                        <option value="ACCOMMODATION">Accommodation</option>
-                        <option value="EQUIPMENT">Equipment & Hardware</option>
-                        <option value="SOFTWARE">Software & Subscriptions</option>
-                        <option value="TRAINING">Training & Courses</option>
-                        <option value="MARKETING">Marketing & Advertising</option>
-                        <option value="UTILITIES">Utilities & Internet</option>
-                        <option value="OTHER">Other</option>
-                      </select>
+                      <label className="text-sm font-medium mb-3 block">Category</label>
+                      <Controller
+                        control={control}
+                        name="category"
+                        render={({ field }) => (
+                          <div className="grid grid-cols-3 gap-2">
+                            {CATEGORIES.map(c => {
+                              const Icon = c.icon;
+                              const isSelected = field.value === c.value;
+                              return (
+                                <button
+                                  key={c.value}
+                                  type="button"
+                                  onClick={() => {
+                                    field.onChange(c.value);
+                                    trigger('category');
+                                  }}
+                                  className={`flex flex-col items-center justify-center p-3 rounded-xl border text-xs font-medium transition-all ${
+                                    isSelected 
+                                      ? 'bg-primary/10 border-primary text-primary shadow-sm shadow-primary/20 scale-[1.02]' 
+                                      : 'bg-muted/30 border-border text-muted-foreground hover:bg-muted hover:border-muted-foreground/30'
+                                  }`}
+                                >
+                                  <Icon className={`w-5 h-5 mb-2 ${isSelected ? 'text-primary' : 'text-muted-foreground'}`} />
+                                  <span className="text-[10px] text-center leading-tight">{c.label}</span>
+                                </button>
+                              )
+                            })}
+                          </div>
+                        )}
+                      />
                       {errors.category && <p className="text-destructive text-xs mt-1">{errors.category.message}</p>}
                     </div>
 

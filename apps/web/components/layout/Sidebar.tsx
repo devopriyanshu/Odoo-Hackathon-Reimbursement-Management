@@ -13,6 +13,7 @@ import { useAuthStore } from '@/store/authStore';
 import { useUIStore } from '@/store/uiStore';
 import { toast } from 'sonner';
 import api from '@/lib/api';
+import { useApprovals } from '@/hooks/useApprovals';
 
 const navItems = [
   { href: '/', label: 'Dashboard', icon: LayoutDashboard, roles: ['ADMIN', 'MANAGER', 'EMPLOYEE'] },
@@ -29,6 +30,9 @@ export function Sidebar() {
   const router = useRouter();
   const { user, clearAuth } = useAuthStore();
   const { sidebarOpen, toggleSidebar } = useUIStore();
+
+  const { data: pendingApprovals } = useApprovals(user?.role === 'ADMIN' || user?.role === 'MANAGER');
+  const pendingCount = pendingApprovals?.length || 0;
 
   const handleLogout = async () => {
     try {
@@ -82,7 +86,7 @@ export function Sidebar() {
           const active = isActive(item.href);
           return (
             <Link key={item.href} href={item.href}
-              className={cn('nav-item', active && 'active', !sidebarOpen && 'justify-center px-0 py-2.5')}
+              className={cn('nav-item relative', active && 'active', !sidebarOpen && 'justify-center px-0 py-2.5')}
               title={!sidebarOpen ? item.label : undefined}
             >
               <item.icon className="w-4 h-4 shrink-0" />
@@ -90,12 +94,20 @@ export function Sidebar() {
                 {sidebarOpen && (
                   <motion.span
                     initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                    className="truncate"
+                    className="truncate flex-1"
                   >
                     {item.label}
                   </motion.span>
                 )}
               </AnimatePresence>
+              {item.label === 'Approvals' && pendingCount > 0 && (
+                <div className={cn(
+                  "flex items-center justify-center bg-destructive text-destructive-foreground font-bold rounded-full",
+                  sidebarOpen ? "w-5 h-5 text-[10px]" : "absolute top-1 right-1 w-2.5 h-2.5"
+                )}>
+                  {sidebarOpen && pendingCount}
+                </div>
+              )}
             </Link>
           );
         })}
@@ -111,8 +123,15 @@ export function Sidebar() {
             {sidebarOpen && (
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex-1 min-w-0">
                 <p className="font-display font-semibold text-xs text-foreground truncate">{user?.name}</p>
-                <div className="flex items-center gap-1">
-                  <span className="text-xs text-muted-foreground truncate">{user?.role}</span>
+                <div className="flex items-center gap-1 mt-0.5">
+                  <span className={cn(
+                    "text-[9px] font-bold tracking-widest px-1.5 py-0.5 rounded-sm uppercase",
+                    user?.role === 'ADMIN' ? 'bg-red-500/15 text-red-500' :
+                    user?.role === 'MANAGER' ? 'bg-blue-500/15 text-blue-500' :
+                    'bg-green-500/15 text-green-500'
+                  )}>
+                    {user?.role}
+                  </span>
                 </div>
               </motion.div>
             )}

@@ -16,7 +16,7 @@
     --popover: 0 0% 100%;
     --popover-foreground: 222 47% 11%;
 
-    --primary: 351 80% 56%;
+    --primary: 262 83% 58%;
     --primary-foreground: 0 0% 100%;
 
     --secondary: 216 51% 22%;
@@ -25,7 +25,7 @@
     --muted: 220 20% 94%;
     --muted-foreground: 215 20% 46%;
 
-    --accent: 351 80% 56%;
+    --accent: 262 83% 58%;
     --accent-foreground: 0 0% 100%;
 
     --destructive: 4 74% 55%;
@@ -33,7 +33,7 @@
 
     --border: 220 20% 88%;
     --input: 220 20% 88%;
-    --ring: 351 80% 56%;
+    --ring: 262 83% 58%;
 
     --radius: 0.625rem;
 
@@ -70,7 +70,7 @@
     --popover: 220 40% 12%;
     --popover-foreground: 210 40% 93%;
 
-    --primary: 351 80% 56%;
+    --primary: 262 83% 58%;
     --primary-foreground: 0 0% 100%;
 
     --secondary: 216 51% 22%;
@@ -79,7 +79,7 @@
     --muted: 220 30% 17%;
     --muted-foreground: 215 20% 55%;
 
-    --accent: 351 80% 56%;
+    --accent: 262 83% 58%;
     --accent-foreground: 0 0% 100%;
 
     --destructive: 4 74% 55%;
@@ -87,16 +87,16 @@
 
     --border: 220 30% 20%;
     --input: 220 30% 20%;
-    --ring: 351 80% 56%;
+    --ring: 262 83% 58%;
 
     --sidebar-background: 220 47% 8%;
     --sidebar-foreground: 210 40% 93%;
-    --sidebar-primary: 351 80% 56%;
+    --sidebar-primary: 262 83% 58%;
     --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: 220 40% 14%;
     --sidebar-accent-foreground: 210 40% 93%;
     --sidebar-border: 220 30% 16%;
-    --sidebar-ring: 351 80% 56%;
+    --sidebar-ring: 262 83% 58%;
   }
 }
 
@@ -128,7 +128,8 @@
 @layer components {
   /* Glassmorphism card */
   .glass-card {
-    @apply backdrop-blur-md bg-card/70 border border-border/60 shadow-xl;
+    @apply backdrop-blur-xl bg-card/70 border border-border/60 shadow-xl shadow-primary/5 transition-all duration-300;
+    border-top: 3px solid hsl(var(--primary));
   }
 
   /* Status badge variants */

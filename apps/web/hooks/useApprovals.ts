@@ -38,7 +38,7 @@ export interface ApprovalStepWithExpense {
   };
 }
 
-export function useApprovals() {
+export function useApprovals(enabled = true) {
   return useQuery<ApprovalStepWithExpense[]>({
     queryKey: ['approvals', 'pending'],
     queryFn: async () => {
@@ -46,6 +46,7 @@ export function useApprovals() {
       return res.data.data;
     },
     refetchInterval: 30_000, // auto-refresh every 30s
+    enabled,
   });
 }
 
